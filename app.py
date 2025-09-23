@@ -10,7 +10,11 @@ import io
 import base64
 import os
 import xml.etree.ElementTree as ET
-from groq import Groq
+from dotenv import load_dotenv
+import time
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure page
 st.set_page_config(
@@ -67,19 +71,62 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize Groq client
+# Initialize Groq client using direct API calls
 @st.cache_resource
 def get_groq_client():
-    """Initialize and cache Groq client"""
+    """Initialize Groq client using direct API calls"""
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         st.error("GROQ_API_KEY environment variable not set!")
         return None
-    try:
-        return Groq(api_key=api_key)
-    except Exception as e:
-        st.error(f"Error initializing Groq client: {str(e)}")
-        return None
+    return {"api_key": api_key}
+
+def make_groq_request(prompt: str, temperature: float = 0.3, max_retries: int = 3) -> str:
+    """Make a request to Groq API with rate limiting and retry logic"""
+    groq_client = get_groq_client()
+    if not groq_client:
+        return "Error: Groq client not available"
+    
+    for attempt in range(max_retries):
+        try:
+            # Add delay between requests to avoid rate limiting
+            if attempt > 0:
+                time.sleep(2 ** attempt)  # Exponential backoff
+            
+            response = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {groq_client['api_key']}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "llama-3.1-8b-instant",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": temperature
+                },
+                timeout=30
+            )
+            
+            if response.status_code == 429:
+                # Rate limit exceeded, wait longer
+                wait_time = 2 ** (attempt + 1)
+                st.warning(f"Rate limit exceeded. Waiting {wait_time} seconds before retry...")
+                time.sleep(wait_time)
+                continue
+            elif response.status_code == 200:
+                data = response.json()
+                return data["choices"][0]["message"]["content"]
+            else:
+                return f"API Error {response.status_code}: {response.text}"
+                
+        except requests.exceptions.Timeout:
+            return f"Request timeout (attempt {attempt + 1}/{max_retries})"
+        except Exception as e:
+            if attempt == max_retries - 1:
+                return f"Error after {max_retries} attempts: {str(e)}"
+            time.sleep(1)
+    
+    return "Error: All retry attempts failed"
 
 class ArxivAPI:
     """Handle arXiv API interactions"""
@@ -161,10 +208,6 @@ class GroqAI:
     @staticmethod
     def summarize_papers(papers: List[Dict[str, Any]]) -> str:
         """Generate AI summary of papers"""
-        groq_client = get_groq_client()
-        if not groq_client:
-            return "Error: Groq client not available"
-            
         abstracts = [paper["abstract"] for paper in papers]
         combined_text = "\n\n".join(abstracts)
         
@@ -177,23 +220,11 @@ class GroqAI:
         Provide a clear, structured summary highlighting the most important points.
         """
         
-        try:
-            response = groq_client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            return f"Error generating summary: {str(e)}"
+        return make_groq_request(prompt, temperature=0.3)
     
     @staticmethod
     def explain_like_15(papers: List[Dict[str, Any]]) -> str:
         """Generate explanation suitable for 15-year-olds"""
-        groq_client = get_groq_client()
-        if not groq_client:
-            return "Error: Groq client not available"
-            
         abstracts = [paper["abstract"] for paper in papers]
         combined_text = "\n\n".join(abstracts)
         
@@ -206,23 +237,11 @@ class GroqAI:
         Make it engaging and easy to understand.
         """
         
-        try:
-            response = groq_client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.5
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            return f"Error generating explanation: {str(e)}"
+        return make_groq_request(prompt, temperature=0.5)
     
     @staticmethod
     def extract_keywords(papers: List[Dict[str, Any]]) -> List[str]:
         """Extract key terms and concepts"""
-        groq_client = get_groq_client()
-        if not groq_client:
-            return []
-            
         abstracts = [paper["abstract"] for paper in papers]
         combined_text = "\n\n".join(abstracts)
         
@@ -234,24 +253,15 @@ class GroqAI:
         Return only a list of 10-15 key terms, separated by commas.
         """
         
-        try:
-            response = groq_client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.2
-            )
-            keywords = response.choices[0].message.content.split(",")
-            return [kw.strip() for kw in keywords if kw.strip()]
-        except Exception as e:
+        result = make_groq_request(prompt, temperature=0.2)
+        if result.startswith("Error"):
             return []
+        keywords = result.split(",")
+        return [kw.strip() for kw in keywords if kw.strip()]
     
     @staticmethod
     def analyze_trends(papers: List[Dict[str, Any]]) -> str:
         """Analyze trends and patterns in the research"""
-        groq_client = get_groq_client()
-        if not groq_client:
-            return "Error: Groq client not available"
-            
         abstracts = [paper["abstract"] for paper in papers]
         combined_text = "\n\n".join(abstracts)
         
@@ -268,23 +278,11 @@ class GroqAI:
         Provide insights about the direction this field is heading.
         """
         
-        try:
-            response = groq_client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.4
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            return f"Error analyzing trends: {str(e)}"
+        return make_groq_request(prompt, temperature=0.4)
     
     @staticmethod
     def identify_challenges(papers: List[Dict[str, Any]]) -> str:
         """Identify open challenges and future directions"""
-        groq_client = get_groq_client()
-        if not groq_client:
-            return "Error: Groq client not available"
-            
         abstracts = [paper["abstract"] for paper in papers]
         combined_text = "\n\n".join(abstracts)
         
@@ -301,15 +299,7 @@ class GroqAI:
         Focus on what problems still need to be solved.
         """
         
-        try:
-            response = groq_client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.4
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            return f"Error identifying challenges: {str(e)}"
+        return make_groq_request(prompt, temperature=0.4)
 
 class ResearchAPI:
     """Handle research operations directly (no backend needed)"""
