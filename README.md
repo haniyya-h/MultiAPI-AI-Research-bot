@@ -4,6 +4,12 @@ A powerful Streamlit application that helps researchers and students search for 
 
 This application demonstrates real-world problem-solving by integrating arXiv, Semantic Scholar, and Groq AI to deliver intelligent research insights through a professional web interface.
 
+## 🌐 Live Application
+
+**Try it now:** [https://multiapi-ai-research.streamlit.app/](https://multiapi-ai-research.streamlit.app/)
+
+The application is live and ready to use! Search for research topics and get AI-powered insights instantly.
+
 ## 🚀 Key Features
 
 ### **Research Capabilities**
@@ -19,6 +25,13 @@ This application demonstrates real-world problem-solving by integrating arXiv, S
 - **Value**: Saves researchers 80% of time spent on literature review and analysis
 - **Users**: Graduate students, researchers, academics, and knowledge workers
 
+### **Current Features & Improvements**
+- **✅ Rate Limiting**: Automatic retry logic with exponential backoff
+- **✅ Error Handling**: Robust error handling for API failures
+- **✅ Direct API Calls**: No SDK dependencies, more reliable
+- **✅ Environment Variables**: Secure API key management
+- **✅ Real-time Processing**: Live progress indicators and status updates
+
 ## 🏗️ Application Architecture
 
 ### **Single Streamlit Application**
@@ -30,8 +43,13 @@ This application demonstrates real-world problem-solving by integrating arXiv, S
 
 ## 🚀 Deployment
 
-### **Easy Deployment Options**
-- **Streamlit Cloud**: One-click deployment from GitHub
+### **Live Application**
+- **🌐 Streamlit Cloud**: [https://multiapi-ai-research.streamlit.app/](https://multiapi-ai-research.streamlit.app/)
+- **✅ Fully Functional**: All features working with rate limiting and error handling
+- **🔒 Secure**: API keys managed through Streamlit Cloud secrets
+
+### **Deployment Options**
+- **Streamlit Cloud**: One-click deployment from GitHub (Recommended)
 - **Heroku**: Simple deployment with Procfile
 - **Local Development**: Run locally for testing and development
 
@@ -151,6 +169,10 @@ set GROQ_API_KEY=your_groq_api_key_here
    - Go to "Secrets" section and add: `GROQ_API_KEY = "your_groq_api_key_here"`
    - Deploy the application!
 
+3. **Live Application:**
+   - Once deployed, your app will be available at: `https://your-app-name.streamlit.app/`
+   - Example: [https://multiapi-ai-research.streamlit.app/](https://multiapi-ai-research.streamlit.app/)
+
 ### **Heroku Deployment**
 
 1. **Prepare for Heroku:**
@@ -269,3 +291,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ---
 
 **Happy Researching! 🔬📚**
+
