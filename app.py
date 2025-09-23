@@ -75,7 +75,11 @@ def get_groq_client():
     if not api_key:
         st.error("GROQ_API_KEY environment variable not set!")
         return None
-    return Groq(api_key=api_key)
+    try:
+        return Groq(api_key=api_key)
+    except Exception as e:
+        st.error(f"Error initializing Groq client: {str(e)}")
+        return None
 
 class ArxivAPI:
     """Handle arXiv API interactions"""
